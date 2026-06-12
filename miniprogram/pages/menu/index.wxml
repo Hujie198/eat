@@ -1,468 +1,92 @@
-<template>
-  <view class="container">
-    <scroll-view class="category-scroll" scroll-x>
-      <view class="category-list">
-        <view 
-          v-for="category in categories" 
-          :key="category"
-          :class="['category-item', { active: activeCategory === category }]"
-          @tap="selectCategory"
-          :data-category="category"
-        >
-          <text class="category-emoji">{{ categoryEmojis[category] }}</text>
-          <text class="category-name">{{ category }}</text>
-        </view>
+<view class="container">
+  <!-- 顶部购物车图标 -->
+  <view class="top-cart" bindtap="goToCart">
+    <view class="cart-icon">🛒</view>
+    <view wx:if="{{cartCount > 0}}" class="cart-badge">{{cartCount}}</view>
+  </view>
+
+  <!-- 分类栏 -->
+  <scroll-view class="category-scroll" scroll-x>
+    <view class="category-list">
+      <view 
+        wx:for="{{categories}}" 
+        wx:key="*this"
+        class="category-item {{activeCategory === item ? 'active' : ''}}"
+        bindtap="selectCategory"
+        data-category="{{item}}"
+      >
+        <text class="category-emoji">{{categoryEmojis[item]}}</text>
+        <text class="category-name">{{item}}</text>
       </view>
-    </scroll-view>
-    
-    <scroll-view class="dish-list" scroll-y>
-      <view class="dish-card" v-for="dish in dishes" :key="dish.id">
-        <view class="dish-image">
-          <text class="emoji-text">{{ categoryEmojis[dish.category] }}</text>
-        </view>
-        <view class="dish-info">
-          <view class="dish-header">
-            <text class="dish-name">{{ dish.name }}</text>
-            <text :class="['difficulty-tag', `difficulty-${dish.difficulty}`]">
-              {{ getDifficultyLabel(dish.difficulty) }}
-            </text>
-          </view>
-          <view class="dish-sales">
-            <text class="sales-icon">👁️</text>
-            <text class="sales-text">{{ dish.sales }} 人点过</text>
-          </view>
-          <view class="dish-actions">
-            <view class="action-btn secondary" @tap="showDishDetail" :data-id="dish.id">
-              <text>查看</text>
-            </view>
-            <view class="action-btn primary" @tap="addToCartDirect" :data-id="dish.id">
-              <text>添加</text>
-            </view>
-          </view>
-        </view>
+    </view>
+  </scroll-view>
+  
+  <!-- 菜品列表 -->
+  <scroll-view class="dish-list" scroll-y>
+    <view wx:for="{{dishes}}" wx:key="id" class="dish-card {{cartIds.includes(item.id) ? 'in-cart' : ''}}">
+      <view class="dish-image">
+        <text class="emoji-text">{{categoryEmojis[item.category]}}</text>
+        <view wx:if="{{cartIds.includes(item.id)}}" class="in-cart-badge">✓ 已添加</view>
       </view>
-    </scroll-view>
-    
-    <view class="modal-overlay" v-if="showModal" @tap="closeModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-header">
-          <text class="modal-title">{{ selectedDish?.name }}</text>
-          <view class="close-btn" @tap="closeModal">
-            <text>✕</text>
-          </view>
+      <view class="dish-info">
+        <view class="dish-header">
+          <text class="dish-name">{{item.name}}</text>
+          <text class="difficulty-tag difficulty-{{item.difficulty}}">
+            {{getDifficultyLabel(item.difficulty)}}
+          </text>
         </view>
-        <view class="modal-body" v-if="selectedDish">
-          <view class="detail-section">
-            <text class="section-title">食材</text>
-            <view class="ingredients-list">
-              <text v-for="(ingredient, index) in selectedDish.ingredients" :key="index" class="ingredient-item">
-                • {{ ingredient }}
-              </text>
-            </view>
-          </view>
-          <view class="detail-section">
-            <text class="section-title">做法步骤</text>
-            <view class="steps-list">
-              <view v-for="(step, index) in selectedDish.steps" :key="index" class="step-item">
-                <text class="step-number">{{ index + 1 }}</text>
-                <text class="step-text">{{ step }}</text>
-              </view>
-            </view>
-          </view>
+        <view class="dish-sales">
+          <text class="sales-icon">👁️</text>
+          <text class="sales-text">{{item.sales}} 人点过</text>
         </view>
-        <view class="modal-footer">
-          <view class="modal-btn secondary" @tap="closeModal">
-            <text>关闭</text>
+        <view class="dish-actions">
+          <view class="action-btn secondary" bindtap="showDishDetail" data-id="{{item.id}}">
+            <text>查看</text>
           </view>
-          <view class="modal-btn primary" @tap="addToCart">
-            <text>添加到购物车</text>
+          <view class="action-btn {{cartIds.includes(item.id) ? 'added' : 'primary'}}" bindtap="addToCartDirect" data-id="{{item.id}}">
+            <text>{{cartIds.includes(item.id) ? '已添加' : '添加'}}</text>
           </view>
         </view>
       </view>
     </view>
+  </scroll-view>
+  
+  <!-- 详情弹窗 -->
+  <view wx:if="{{showModal}}" class="modal-overlay" bindtap="closeModal">
+    <view class="modal-content" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">{{selectedDish.name}}</text>
+        <view class="close-btn" bindtap="closeModal">
+          <text>✕</text>
+        </view>
+      </view>
+      <view class="modal-body">
+        <view class="detail-section">
+          <text class="section-title">🥬 食材</text>
+          <view class="ingredients-list">
+            <text wx:for="{{selectedDish.ingredients}}" wx:for-item="ingredient" wx:key="*this" class="ingredient-item">
+              • {{ingredient}}
+            </text>
+          </view>
+        </view>
+        <view class="detail-section">
+          <text class="section-title">👨‍🍳 做法步骤</text>
+          <view class="steps-list">
+            <view wx:for="{{selectedDish.steps}}" wx:for-item="step" wx:for-index="index" wx:key="index" class="step-item">
+              <text class="step-number">{{index + 1}}</text>
+              <text class="step-text">{{step}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="modal-footer">
+        <view class="modal-btn secondary" bindtap="closeModal">
+          <text>关闭</text>
+        </view>
+        <view class="modal-btn primary" bindtap="addToCart">
+          <text>添加到购物车</text>
+        </view>
+      </view>
+    </view>
   </view>
-</template>
-
-<script>
-const { categories, categoryEmojis, getDishesByCategory, getDishById } = require('../../data/dishes.js')
-
-Page({
-  data: {
-    categories: [],
-    activeCategory: '',
-    dishes: [],
-    selectedDish: null,
-    showModal: false,
-    categoryEmojis: {}
-  },
-
-  onLoad: function () {
-    this.setData({
-      categories: categories,
-      activeCategory: categories[0],
-      dishes: getDishesByCategory(categories[0]),
-      categoryEmojis: categoryEmojis
-    })
-  },
-
-  onShow: function () {
-    this.refreshData()
-  },
-
-  refreshData: function () {
-    this.setData({
-      dishes: getDishesByCategory(this.data.activeCategory)
-    })
-  },
-
-  selectCategory: function (e) {
-    const category = e.currentTarget.dataset.category
-    this.setData({
-      activeCategory: category,
-      dishes: getDishesByCategory(category)
-    })
-  },
-
-  showDishDetail: function (e) {
-    const dishId = e.currentTarget.dataset.id
-    this.setData({
-      selectedDish: getDishById(dishId),
-      showModal: true
-    })
-  },
-
-  closeModal: function () {
-    this.setData({
-      showModal: false,
-      selectedDish: null
-    })
-  },
-
-  addToCartDirect: function (e) {
-    const dishId = e.currentTarget.dataset.id
-    const app = getApp()
-    app.addToCart(dishId)
-    
-    wx.showToast({
-      title: '已添加',
-      icon: 'success'
-    })
-  },
-
-  addToCart: function () {
-    if (!this.data.selectedDish) return
-    
-    const app = getApp()
-    app.addToCart(this.data.selectedDish.id)
-    
-    wx.showToast({
-      title: '已添加',
-      icon: 'success'
-    })
-    
-    this.closeModal()
-  },
-
-  getDifficultyLabel: function (difficulty) {
-    const labels = {
-      easy: '简单',
-      medium: '中等',
-      hard: '困难'
-    }
-    return labels[difficulty] || difficulty
-  }
-})
-</script>
-
-<style>
-.container {
-  min-height: 100vh;
-  background: #f5f5f5;
-}
-
-.category-scroll {
-  white-space: nowrap;
-  background: white;
-  padding: 20rpx 0;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
-}
-
-.category-list {
-  display: inline-flex;
-  padding: 0 20rpx;
-  gap: 20rpx;
-}
-
-.category-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16rpx 24rpx;
-  background: #f8f9fa;
-  border-radius: 16rpx;
-  transition: all 0.3s;
-}
-
-.category-item.active {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-}
-
-.category-emoji {
-  font-size: 40rpx;
-  margin-bottom: 8rpx;
-}
-
-.category-name {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.category-item.active .category-name {
-  color: white;
-}
-
-.dish-list {
-  height: calc(100vh - 180rpx);
-  padding: 20rpx;
-}
-
-.dish-card {
-  display: flex;
-  background: white;
-  border-radius: 20rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
-}
-
-.dish-image {
-  width: 160rpx;
-  height: 160rpx;
-  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
-  border-radius: 16rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.emoji-text {
-  font-size: 60rpx;
-}
-
-.dish-info {
-  flex: 1;
-  margin-left: 20rpx;
-  display: flex;
-  flex-direction: column;
-}
-
-.dish-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12rpx;
-}
-
-.dish-name {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: #333;
-}
-
-.difficulty-tag {
-  font-size: 20rpx;
-  padding: 4rpx 12rpx;
-  border-radius: 8rpx;
-}
-
-.difficulty-easy {
-  background: #dcfce7;
-  color: #16a34a;
-}
-
-.difficulty-medium {
-  background: #fef3c7;
-  color: #d97706;
-}
-
-.difficulty-hard {
-  background: #fee2e2;
-  color: #dc2626;
-}
-
-.dish-sales {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.sales-icon {
-  font-size: 24rpx;
-  margin-right: 8rpx;
-}
-
-.sales-text {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.dish-actions {
-  display: flex;
-  gap: 16rpx;
-  margin-top: auto;
-}
-
-.action-btn {
-  flex: 1;
-  padding: 16rpx;
-  border-radius: 12rpx;
-  text-align: center;
-  font-size: 26rpx;
-}
-
-.action-btn.primary {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-}
-
-.action-btn.secondary {
-  background: #f5f5f5;
-  color: #666;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  width: 90%;
-  max-height: 80vh;
-  background: white;
-  border-radius: 24rpx;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 32rpx;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-}
-
-.modal-title {
-  font-size: 32rpx;
-  font-weight: 600;
-  color: white;
-}
-
-.close-btn {
-  width: 48rpx;
-  height: 48rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,255,255,0.2);
-  border-radius: 50%;
-  color: white;
-  font-size: 28rpx;
-}
-
-.modal-body {
-  padding: 24rpx 32rpx;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.detail-section {
-  margin-bottom: 32rpx;
-}
-
-.section-title {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 16rpx;
-  display: block;
-}
-
-.ingredients-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12rpx;
-}
-
-.ingredient-item {
-  font-size: 26rpx;
-  color: #666;
-  background: #f5f5f5;
-  padding: 8rpx 16rpx;
-  border-radius: 8rpx;
-}
-
-.steps-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.step-item {
-  display: flex;
-  gap: 16rpx;
-}
-
-.step-number {
-  width: 40rpx;
-  height: 40rpx;
-  background: #6366f1;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 24rpx;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.step-text {
-  font-size: 26rpx;
-  color: #666;
-  line-height: 1.6;
-}
-
-.modal-footer {
-  display: flex;
-  gap: 20rpx;
-  padding: 24rpx 32rpx;
-  border-top: 1rpx solid #f0f0f0;
-}
-
-.modal-btn {
-  flex: 1;
-  padding: 20rpx;
-  border-radius: 16rpx;
-  text-align: center;
-  font-size: 28rpx;
-}
-
-.modal-btn.primary {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  color: white;
-}
-
-.modal-btn.secondary {
-  background: #f5f5f5;
-  color: #666;
-}
-</style>
+</view>
