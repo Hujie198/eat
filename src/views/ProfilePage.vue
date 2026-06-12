@@ -1,12 +1,41 @@
 <script setup lang="ts">
-import { User, History, ShoppingBag, Award } from 'lucide-vue-next'
-import { historyDishes, totalOrders, selectDish } from '../stores/store'
+import { ref } from 'vue'
+import { User, History, ShoppingBag, Award, Share2, Download, CheckCircle } from 'lucide-vue-next'
+import { historyDishes, totalOrders, selectDish, exportCartData, importCartData } from '../stores/store'
 import { categoryEmojis } from '../data/dishes'
 
 const difficultyLabels: Record<string, string> = {
   easy: '简单',
   medium: '中等',
   hard: '困难'
+}
+
+const shareCode = ref('')
+const importCode = ref('')
+const showShareModal = ref(false)
+const showImportModal = ref(false)
+const importSuccess = ref(false)
+
+function handleExport() {
+  shareCode.value = exportCartData()
+  showShareModal.value = true
+}
+
+function copyShareCode() {
+  navigator.clipboard.writeText(shareCode.value)
+}
+
+function handleImport() {
+  if (importCartData(importCode.value)) {
+    importSuccess.value = true
+    setTimeout(() => {
+      showImportModal.value = false
+      importSuccess.value = false
+      importCode.value = ''
+    }, 2000)
+  } else {
+    alert('导入失败，请检查分享码是否正确')
+  }
 }
 </script>
 
@@ -48,6 +77,25 @@ const difficultyLabels: Record<string, string> = {
           </div>
         </div>
       </div>
+      <div class="bg-white rounded-2xl shadow-lg p-4 mb-4">
+        <h2 class="font-semibold text-gray-800 mb-3">数据共享</h2>
+        <div class="flex gap-3">
+          <button
+            @click="handleExport"
+            class="flex-1 btn-primary flex items-center justify-center gap-2"
+          >
+            <Share2 class="w-5 h-5" />
+            导出购物车
+          </button>
+          <button
+            @click="showImportModal = true"
+            class="flex-1 btn-secondary flex items-center justify-center gap-2"
+          >
+            <Download class="w-5 h-5" />
+            导入购物车
+          </button>
+        </div>
+      </div>
       <div class="bg-white rounded-2xl shadow-lg p-4">
         <h2 class="font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <History class="w-5 h-5 text-purple-500" />
@@ -80,5 +128,57 @@ const difficultyLabels: Record<string, string> = {
         </div>
       </div>
     </div>
+    
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showShareModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showShareModal = false">
+          <div class="bg-white rounded-2xl max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-gray-800 mb-4">分享购物车</h3>
+            <p class="text-gray-600 text-sm mb-4">复制下方分享码发给家人，他们可以导入你的购物车数据</p>
+            <div class="bg-gray-100 rounded-lg p-4 mb-4 break-all text-center font-mono text-sm">
+              {{ shareCode }}
+            </div>
+            <div class="flex gap-3">
+              <button @click="showShareModal = false" class="flex-1 btn-secondary">
+                关闭
+              </button>
+              <button @click="copyShareCode" class="flex-1 btn-primary">
+                复制分享码
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+    
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="showImportModal = false">
+          <div class="bg-white rounded-2xl max-w-sm w-full p-6">
+            <div v-if="importSuccess" class="flex flex-col items-center py-8">
+              <CheckCircle class="w-16 h-16 text-green-500 mb-3" />
+              <h3 class="text-lg font-bold text-gray-800">导入成功</h3>
+            </div>
+            <template v-else>
+              <h3 class="text-lg font-bold text-gray-800 mb-4">导入购物车</h3>
+              <p class="text-gray-600 text-sm mb-4">粘贴家人分享的购物车分享码</p>
+              <textarea
+                v-model="importCode"
+                placeholder="请输入分享码..."
+                class="w-full h-32 bg-gray-100 rounded-lg p-4 mb-4 text-sm"
+              ></textarea>
+              <div class="flex gap-3">
+                <button @click="showImportModal = false" class="flex-1 btn-secondary">
+                  取消
+                </button>
+                <button @click="handleImport" class="flex-1 btn-primary">
+                  导入
+                </button>
+              </div>
+            </template>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

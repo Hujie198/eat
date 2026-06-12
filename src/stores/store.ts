@@ -1,42 +1,25 @@
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { dishes, categories } from '../data/dishes'
-import { 
-  listenToCart, 
-  listenToHistory, 
-  listenToTotalOrders, 
-  updateCart, 
-  updateHistory,
-  incrementTotalOrders 
-} from '../utils/firebase'
+import { saveCart, loadCart, saveHistory, loadHistory, saveTotalOrders, loadTotalOrders } from '../utils/storage'
 
-export const cart = ref<string[]>([])
-export const history = ref<string[]>([])
-export const totalOrders = ref<number>(0)
+export const cart = ref<string[]>(loadCart())
+export const history = ref<string[]>(loadHistory())
+export const totalOrders = ref<number>(loadTotalOrders())
 export const currentPage = ref<string>('menu')
 export const activeCategory = ref<string>(categories[0])
 export const selectedDish = ref<string | null>(null)
 
-onMounted(() => {
-  listenToCart((newCart) => {
-    cart.value = newCart
-  })
-  
-  listenToHistory((newHistory) => {
-    history.value = newHistory
-  })
-  
-  listenToTotalOrders((newCount) => {
-    totalOrders.value = newCount
-  })
-})
-
 watch(cart, (newCart) => {
-  updateCart(newCart)
+  saveCart(newCart)
 }, { deep: true })
 
 watch(history, (newHistory) => {
-  updateHistory(newHistory)
+  saveHistory(newHistory)
 }, { deep: true })
+
+watch(totalOrders, (newCount) => {
+  saveTotalOrders(newCount)
+})
 
 export const filteredDishes = computed(() => {
   return dishes.filter(dish => dish.category === activeCategory.value)
@@ -57,7 +40,7 @@ export function addToCart(dishId: string) {
     if (!history.value.includes(dishId)) {
       history.value.push(dishId)
     }
-    incrementTotalOrders()
+    totalOrders.value++
   }
 }
 
@@ -87,4 +70,25 @@ export function selectDish(dishId: string | null) {
 export function getDishById(id: string | null) {
   if (!id) return null
   return dishes.find(dish => dish.id === id) || null
+}
+
+export function exportCartData() {
+  const data = {
+    cart: cart.value,
+    history: history.value,
+    totalOrders: totalOrders.value
+  }
+  return btoa(JSON.stringify(data))
+}
+
+export function importCartData(encodedData: string) {
+  try {
+    const data = JSON.parse(atob(encodedData))
+    cart.value = data.cart || []
+    history.value = data.history || []
+    totalOrders.value = data.totalOrders || 0
+    return true
+  } catch {
+    return false
+  }
 }
