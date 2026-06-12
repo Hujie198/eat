@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { User, History, ShoppingBag, Award } from 'lucide-vue-next'
 import { historyDishes, totalOrders, selectDish } from '../stores/store'
+import { categoryEmojis } from '../data/dishes'
 
 const difficultyLabels: Record<string, string> = {
   easy: '简单',
@@ -59,7 +60,9 @@ const difficultyLabels: Record<string, string> = {
             @click="selectDish(dish.id)"
             class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
           >
-            <img :src="dish.image" :alt="dish.name" class="w-12 h-12 object-cover rounded-lg" />
+            <div class="w-12 h-12 bg-gradient-to-br from-orange-100 to-red-100 rounded-lg flex items-center justify-center">
+              <span class="text-2xl">{{ categoryEmojis[dish.category] || '🍽️' }}</span>
+            </div>
             <div class="flex-1 min-w-0">
               <h3 class="font-medium text-gray-800 truncate">{{ dish.name }}</h3>
               <div class="flex items-center gap-2 mt-0.5">

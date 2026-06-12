@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { X, ShoppingCart, BookOpen, List } from 'lucide-vue-next'
 import { selectedDish, getDishById, selectDish, addToCart } from '../stores/store'
+import { categoryEmojis } from '../data/dishes'
 
 const dish = computed(() => getDishById(selectedDish.value))
 
@@ -29,8 +30,8 @@ function handleClose() {
     <Transition name="modal">
       <div v-if="selectedDish && dish" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" @click.self="handleClose">
         <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-          <div class="relative">
-            <img :src="dish.image" :alt="dish.name" class="w-full h-48 object-cover rounded-t-2xl" />
+          <div class="relative bg-gradient-to-br from-orange-100 to-red-100 rounded-t-2xl h-48 flex items-center justify-center">
+            <span class="text-8xl">{{ categoryEmojis[dish.category] || '🍽️' }}</span>
             <button @click="handleClose" class="absolute top-4 right-4 p-2 bg-white/80 rounded-full shadow-md hover:bg-white transition-colors">
               <X class="w-5 h-5 text-gray-600" />
             </button>

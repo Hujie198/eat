@@ -1,5 +1,6 @@
 <script setup lang="ts">import { ShoppingCart, Eye } from 'lucide-vue-next';
 import type { Dish } from '../data/dishes';
+import { categoryEmojis } from '../data/dishes';
 import { addToCart, selectDish } from '../stores/store';
 defineProps<{
  dish: Dish;
@@ -13,8 +14,8 @@ const difficultyLabels: Record<string, string> = {
 
 <template>
   <div class="dish-card p-4 flex flex-col">
-    <div class="relative mb-3">
-      <img :src="dish.image" :alt="dish.name" class="w-full h-32 object-cover rounded-lg" />
+    <div class="relative mb-3 flex items-center justify-center bg-gradient-to-br from-orange-100 to-red-100 rounded-lg h-32">
+      <span class="text-6xl">{{ categoryEmojis[dish.category] || '🍽️' }}</span>
       <span class="absolute top-2 right-2 px-2 py-1 rounded-full text-xs font-medium" :class="`difficulty-${dish.difficulty}`">
         {{ difficultyLabels[dish.difficulty] }}
       </span>
