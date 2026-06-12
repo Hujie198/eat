@@ -1,0 +1,15 @@
+{
+  // 静态资源目录配置
+  "assets": {
+    "directory": "./dist"
+  },
+  // 关闭边缘函数（纯静态站点不需要）
+  "functions": {
+    "enabled": false
+  },
+  // 构建配置
+  "build": {
+    "command": "npm run build",
+    "outputDirectory": "./dist"
+  }
+}
