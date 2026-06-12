@@ -1,0 +1,298 @@
+<template>
+  <view class="container">
+    <view class="header">
+      <text class="header-title">🛒 干饭清单</text>
+      <view class="clear-btn" @tap="clearCart" v-if="cartDishes.length > 0">
+        <text>清空</text>
+      </view>
+    </view>
+    
+    <scroll-view class="cart-list" scroll-y v-if="cartDishes.length > 0">
+      <view class="cart-item" v-for="dish in cartDishes" :key="dish.id">
+        <view class="item-image">
+          <text class="emoji-text">{{ categoryEmojis[dish.category] }}</text>
+        </view>
+        <view class="item-info">
+          <text class="item-name">{{ dish.name }}</text>
+          <view class="item-meta">
+            <text :class="['difficulty-tag', `difficulty-${dish.difficulty}`]">
+              {{ getDifficultyLabel(dish.difficulty) }}
+            </text>
+            <text class="category-text">{{ dish.category }}</text>
+          </view>
+        </view>
+        <view class="item-actions">
+          <view class="action-btn view" @tap="showDishDetail" :data-id="dish.id">
+            <text>查看</text>
+          </view>
+          <view class="action-btn remove" @tap="removeFromCart" :data-id="dish.id">
+            <text>删除</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+    
+    <view class="empty-state" v-else>
+      <text class="empty-icon">🍽️</text>
+      <text class="empty-text">购物车是空的</text>
+      <text class="empty-hint">快去菜单看看有什么好吃的</text>
+      <view class="go-menu-btn" @tap="goToMenu">
+        <text>去点菜</text>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+const { getDishById, categoryEmojis } = require('../../data/dishes.js')
+
+Page({
+  data: {
+    cartDishes: [],
+    categoryEmojis: {}
+  },
+
+  onShow: function () {
+    this.refreshCart()
+  },
+
+  refreshCart: function () {
+    const app = getApp()
+    
+    const cartDishes = app.globalData.cart.map(id => getDishById(id)).filter(Boolean)
+    
+    this.setData({
+      cartDishes: cartDishes,
+      categoryEmojis: categoryEmojis
+    })
+  },
+
+  showDishDetail: function (e) {
+    const dishId = e.currentTarget.dataset.id
+    const dish = getDishById(dishId)
+    
+    wx.showModal({
+      title: dish?.name || '',
+      content: `食材：${dish?.ingredients.join('、')}\n\n做法：${dish?.steps.join('\n')}`,
+      showCancel: true,
+      cancelText: '关闭',
+      confirmText: '添加更多',
+      success: (res) => {
+        if (res.confirm) {
+          wx.switchTab({
+            url: '/pages/menu/index'
+          })
+        }
+      }
+    })
+  },
+
+  removeFromCart: function (e) {
+    const dishId = e.currentTarget.dataset.id
+    const app = getApp()
+    app.removeFromCart(dishId)
+    this.refreshCart()
+    
+    wx.showToast({
+      title: '已移除',
+      icon: 'none'
+    })
+  },
+
+  clearCart: function () {
+    wx.showModal({
+      title: '确认清空',
+      content: '确定要清空购物车吗？',
+      success: (res) => {
+        if (res.confirm) {
+          const app = getApp()
+          app.clearCart()
+          this.refreshCart()
+          
+          wx.showToast({
+            title: '已清空',
+            icon: 'success'
+          })
+        }
+      }
+    })
+  },
+
+  goToMenu: function () {
+    wx.switchTab({
+      url: '/pages/menu/index'
+    })
+  },
+
+  getDifficultyLabel: function (difficulty) {
+    const labels = {
+      easy: '简单',
+      medium: '中等',
+      hard: '困难'
+    }
+    return labels[difficulty] || difficulty
+  }
+})
+</script>
+
+<style>
+.container {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background: white;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+}
+
+.header-title {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.clear-btn {
+  padding: 12rpx 24rpx;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+}
+
+.cart-list {
+  height: calc(100vh - 120rpx);
+  padding: 20rpx;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  background: white;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+
+.item-image {
+  width: 120rpx;
+  height: 120rpx;
+  background: linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%);
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.emoji-text {
+  font-size: 48rpx;
+}
+
+.item-info {
+  flex: 1;
+  margin-left: 20rpx;
+}
+
+.item-name {
+  font-size: 30rpx;
+  font-weight: 500;
+  color: #333;
+  display: block;
+  margin-bottom: 8rpx;
+}
+
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.difficulty-tag {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.difficulty-easy {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.difficulty-medium {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.difficulty-hard {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.category-text {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.action-btn {
+  padding: 12rpx 20rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  text-align: center;
+}
+
+.action-btn.view {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.action-btn.remove {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 40rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 32rpx;
+}
+
+.empty-text {
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 16rpx;
+}
+
+.empty-hint {
+  font-size: 26rpx;
+  color: #999;
+  margin-bottom: 40rpx;
+}
+
+.go-menu-btn {
+  padding: 20rpx 60rpx;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+  border-radius: 16rpx;
+  font-size: 28rpx;
+}
+</style>
