@@ -1,25 +1,42 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { dishes, categories } from '../data/dishes'
-import { saveCart, loadCart, saveHistory, loadHistory, saveTotalOrders, loadTotalOrders } from '../utils/storage'
+import { 
+  listenToCart, 
+  listenToHistory, 
+  listenToTotalOrders, 
+  updateCart, 
+  updateHistory,
+  incrementTotalOrders 
+} from '../utils/firebase'
 
-export const cart = ref<string[]>(loadCart())
-export const history = ref<string[]>(loadHistory())
-export const totalOrders = ref<number>(loadTotalOrders())
+export const cart = ref<string[]>([])
+export const history = ref<string[]>([])
+export const totalOrders = ref<number>(0)
 export const currentPage = ref<string>('menu')
 export const activeCategory = ref<string>(categories[0])
 export const selectedDish = ref<string | null>(null)
 
+onMounted(() => {
+  listenToCart((newCart) => {
+    cart.value = newCart
+  })
+  
+  listenToHistory((newHistory) => {
+    history.value = newHistory
+  })
+  
+  listenToTotalOrders((newCount) => {
+    totalOrders.value = newCount
+  })
+})
+
 watch(cart, (newCart) => {
-  saveCart(newCart)
+  updateCart(newCart)
 }, { deep: true })
 
 watch(history, (newHistory) => {
-  saveHistory(newHistory)
+  updateHistory(newHistory)
 }, { deep: true })
-
-watch(totalOrders, (newCount) => {
-  saveTotalOrders(newCount)
-})
 
 export const filteredDishes = computed(() => {
   return dishes.filter(dish => dish.category === activeCategory.value)
@@ -40,7 +57,7 @@ export function addToCart(dishId: string) {
     if (!history.value.includes(dishId)) {
       history.value.push(dishId)
     }
-    totalOrders.value++
+    incrementTotalOrders()
   }
 }
 
